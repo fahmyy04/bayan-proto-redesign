@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
+import Image from "next/image";
 
 type Status = "Done" | "Paused" | "Active" | "Draft";
 
@@ -16,7 +17,7 @@ type Campaign = {
   status: Status;
 };
 
-const campaigns: Campaign[] = [
+const initialCampaigns: Campaign[] = [
   { id: 1, name: "Euro campaign", totalLeads: 300, sent: 241, openRate: 31, replyRate: 14, deliveryRate: 2.1, status: "Done" },
   { id: 2, name: "KSA Campaign", totalLeads: 150, sent: 98, openRate: 27, replyRate: 9, deliveryRate: 1.0, status: "Paused" },
   { id: 3, name: "UK Campaign", totalLeads: 80, sent: 45, openRate: 22, replyRate: 6, deliveryRate: 3.5, status: "Active" },
@@ -77,8 +78,14 @@ function Checkbox({ checked }: { checked: boolean }) {
 }
 
 export default function CampaignsPage() {
+  const [rows, setRows] = useState<Campaign[]>(initialCampaigns);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
+
+  const trimmedQuery = search.trim().toLowerCase();
+  const visible = trimmedQuery
+    ? rows.filter((c) => c.name.toLowerCase().includes(trimmedQuery))
+    : rows;
 
   const toggleRow = (id: number) => {
     setSelected((prev) => {
@@ -89,12 +96,22 @@ export default function CampaignsPage() {
     });
   };
 
-  const allChecked = selected.size === campaigns.length;
+  const allChecked = visible.length > 0 && selected.size === visible.length;
   const toggleAll = () => {
-    setSelected(allChecked ? new Set() : new Set(campaigns.map((c) => c.id)));
+    setSelected(allChecked ? new Set() : new Set(visible.map((c) => c.id)));
   };
 
   const selectedCount = selected.size;
+
+  const applyStatus = (status: Status) => {
+    setRows((prev) => prev.map((c) => (selected.has(c.id) ? { ...c, status } : c)));
+    setSelected(new Set());
+  };
+
+  const removeSelected = () => {
+    setRows((prev) => prev.filter((c) => !selected.has(c.id)));
+    setSelected(new Set());
+  };
 
   return (
     <main className="min-h-screen bg-[#f6f7f9] p-6">
@@ -122,21 +139,21 @@ export default function CampaignsPage() {
           {selectedCount > 0 && (
             <>
               <span className="flex items-center gap-1.5 text-sm text-gray-400">
-                <img src="/Icon Left.png" alt="Selected" className="w-5 h-5" />
+                <Image src="/Icon Left.png" alt="" width={20} height={20} className="w-5 h-5" />
                 {selectedCount} selected
               </span>
 
-              <button className="flex items-center gap-1.5 rounded-full bg-orange-400 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-orange-500">
-                <img src="/pause-icon.png" alt="Pause" className="w-3.5 h-3.5" /> Pause
+              <button onClick={() => applyStatus("Paused")} className="flex items-center gap-1.5 rounded-full bg-orange-400 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-orange-500">
+                <Image src="/pause-icon.png" alt="" width={14} height={14} className="w-3.5 h-3.5" /> Pause
               </button>
-              <button className="flex items-center gap-1.5 rounded-full bg-emerald-500 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-600">
-                <img src="/resume-icon.png" alt="Resume" className="w-3.5 h-3.5" /> Resume
+              <button onClick={() => applyStatus("Active")} className="flex items-center gap-1.5 rounded-full bg-emerald-500 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-600">
+                <Image src="/resume-icon.png" alt="" width={14} height={14} className="w-3.5 h-3.5" /> Resume
               </button>
-              <button className="flex items-center gap-1.5 rounded-full bg-slate-700 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-slate-800">
-                <img src="/archive-icon.png" alt="Archive" className="w-3.5 h-3.5" /> Archive
+              <button onClick={removeSelected} className="flex items-center gap-1.5 rounded-full bg-slate-700 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-slate-800">
+                <Image src="/archive-icon.png" alt="" width={14} height={14} className="w-3.5 h-3.5" /> Archive
               </button>
-              <button className="flex items-center gap-1.5 rounded-full bg-red-500 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-red-600">
-                <img src="/delete-icon.png" alt="Delete" className="w-3.5 h-3.5" /> Delete
+              <button onClick={removeSelected} className="flex items-center gap-1.5 rounded-full bg-red-500 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-red-600">
+                <Image src="/delete-icon.png" alt="" width={14} height={14} className="w-3.5 h-3.5" /> Delete
               </button>
             </>
           )}
@@ -158,7 +175,7 @@ export default function CampaignsPage() {
             <thead>
               <tr className="sticky top-0 z-10 border-b border-gray-100 bg-white text-left text-xs font-medium text-gray-400">
                 <th className="w-10 px-4 py-3">
-                  <button onClick={toggleAll} className="flex">
+                  <button onClick={toggleAll} aria-label="Select all campaigns">
                     <Checkbox checked={allChecked} />
                   </button>
                 </th>
@@ -172,17 +189,17 @@ export default function CampaignsPage() {
               </tr>
             </thead>
             <tbody>
-              {campaigns.map((c, i) => {
+              {visible.map((c) => {
                 const isChecked = selected.has(c.id);
                 return (
                   <tr
                     key={c.id}
                     className={`${
-                      i !== campaigns.length - 1 ? "border-b border-gray-50" : ""
+                      c.id !== visible[visible.length - 1].id ? "border-b border-gray-50" : ""
                     } hover:bg-gray-50/60`}
                   >
                     <td className="px-4 py-3.5">
-                      <button onClick={() => toggleRow(c.id)} className="flex">
+                      <button onClick={() => toggleRow(c.id)} aria-label={`Select ${c.name}`} className="flex">
                         <Checkbox checked={isChecked} />
                       </button>
                     </td>
@@ -199,9 +216,9 @@ export default function CampaignsPage() {
                       {c.deliveryRate !== null ? `${c.deliveryRate}%` : ""}
                     </td>
                     <td className="px-3 py-3.5">
-<span
-                          className={`inline-flex min-w-[76px] items-center justify-center rounded-full px-3 py-1 text-xs font-medium ${statusStyles[c.status]}`}
-                        >
+                      <span
+                        className={`inline-flex min-w-[76px] items-center justify-center rounded-full px-3 py-1 text-xs font-medium ${statusStyles[c.status]}`}
+                      >
                         {c.status}
                       </span>
                     </td>
@@ -210,6 +227,9 @@ export default function CampaignsPage() {
               })}
             </tbody>
           </table>
+          {visible.length === 0 && (
+            <div className="p-6 text-center text-sm text-gray-400">No campaigns match your search.</div>
+          )}
         </div>
 
         {/* Legend */}

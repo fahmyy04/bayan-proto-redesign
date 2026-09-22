@@ -12,7 +12,7 @@ export function Sidebar() {
     { icon: UserSearch, href: '/lead-locator' },
     { icon: GraduationCap, href: '/courses' },
     { icon: Briefcase, href: '/icp-library' },
-    { icon: Send, href: '/lists' },
+    { icon: Send, href: '/campaigns' },
     { icon: Mail, href: '/mail' },
     { icon: Settings, href: '/settings', isBottom: true },
     { icon: Book, href: '/book' },
